@@ -357,11 +357,15 @@ function loadchal(id, update) {
     obj = $.grep(challenges['game'], function (e) {
         return e.id == id;
     })[0]
+    comp=$.grep(competitions,function(e){
+        return e.id==obj.competition;
+    })[0]
     $('#desc-write-link').click() // Switch to Write tab
     $('.chal-title').text(obj.name);
     $('.chal-name').val(obj.name);
     $('.chal-desc').val(obj.description);
     $('.chal-value').val(obj.value);
+    $('.chal-comp').val(comp.id);
     if (parseInt(obj.max_attempts) > 0){
         $('.chal-attempts').val(obj.max_attempts);
         $('#limit_max_attempts').prop('checked', true);
