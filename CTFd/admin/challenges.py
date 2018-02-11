@@ -1,6 +1,6 @@
 from flask import current_app as app, render_template, request, redirect, jsonify, url_for, Blueprint
 from CTFd.utils import admins_only, is_admin, cache
-from CTFd.models import db, Teams, Solves, Awards, Challenges, WrongKeys, Keys, Tags, Files, Tracking, Pages, Config, Hints, Unlocks, DatabaseError
+from CTFd.models import db, Teams, Solves, Awards, Challenges, WrongKeys, Keys, Tags, Files, Tracking, Pages, Config, Hints, Unlocks, DatabaseError,Competitions
 from CTFd.plugins.keys import get_key_class, KEY_CLASSES
 from CTFd.plugins.challenges import get_chal_class, CHALLENGE_CLASSES
 
@@ -25,7 +25,7 @@ def admin_chal_types():
 @admins_only
 def admin_chals():
     if request.method == 'POST':
-        chals = Challenges.query.add_columns('id', 'type', 'name', 'value', 'description', 'category', 'hidden', 'max_attempts').order_by(Challenges.value).all()
+        chals = Challenges.query.add_columns('id', 'type', 'name', 'value', 'description','competition', 'category', 'hidden', 'max_attempts').order_by(Challenges.value).all()
 
         teams_with_points = db.session.query(Solves.teamid).join(Teams).filter(
             Teams.banned == False).group_by(Solves.teamid).count()
@@ -41,13 +41,13 @@ def admin_chals():
 
             type_class = CHALLENGE_CLASSES.get(x.type)
             type_name = type_class.name if type_class else None
-
             json_data['game'].append({
                 'id': x.id,
                 'name': x.name,
                 'value': x.value,
                 'description': x.description,
                 'category': x.category,
+                'competition':x.competition,
                 'hidden': x.hidden,
                 'max_attempts': x.max_attempts,
                 'type': x.type,
@@ -225,7 +225,7 @@ def admin_create_chal():
         files = request.files.getlist('files[]')
 
         # Create challenge
-        chal = Challenges(request.form['name'], request.form['desc'], request.form['value'], request.form['category'], int(request.form['chaltype']))
+        chal = Challenges(request.form['name'], request.form['desc'], request.form['value'], request.form['category'], request.form['competition'],int(request.form['chaltype']))
         if 'hidden' in request.form:
             chal.hidden = True
         else:
@@ -282,6 +282,7 @@ def admin_update_chal():
     challenge.value = int(request.form.get('value', 0)) if request.form.get('value', 0) else 0
     challenge.max_attempts = int(request.form.get('max_attempts', 0)) if request.form.get('max_attempts', 0) else 0
     challenge.category = request.form['category']
+    challenge.competition=request.form['competition']
     challenge.hidden = 'hidden' in request.form
     db.session.add(challenge)
     db.session.commit()
