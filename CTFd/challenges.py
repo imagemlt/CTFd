@@ -6,7 +6,7 @@ import time
 from flask import render_template, request, redirect, jsonify, url_for, session, Blueprint, abort
 from sqlalchemy.sql import or_
 
-from CTFd.models import db, Challenges, Files, Solves, WrongKeys, Keys, Tags, Teams, Awards, Hints, Unlocks
+from CTFd.models import db, Challenges, Files, Solves, WrongKeys, Keys, Tags, Teams, Awards, Hints, Unlocks,Competitions
 from CTFd.plugins.keys import get_key_class
 from CTFd.plugins.challenges import get_chal_class
 
@@ -97,6 +97,28 @@ def challenges_view():
     else:
         return redirect(url_for('auth.login', next='challenges'))
 
+@challenges.route('/competitions',methods=['GET'])
+def competitions():
+    if not utils.is_admin():
+        if not utils.ctftime():
+            if utils.view_after_ctf():
+                pass
+            else:
+                abort(403)
+    if utils.user_can_view_challenges() and (utils.ctf_started() or utils.is_admin()):
+        competitions=Competitions.query.all()
+        json={'competitions':[]}
+        for x in competitions:
+            json['competitions'].append({
+                'id':x.id,
+                'title':x.title,
+                'description':x.description
+            })
+        db.session.close()
+        return jsonify(json)
+    else:
+        db.session.close()
+        abort(403) 
 
 @challenges.route('/chals', methods=['GET'])
 def chals():
@@ -107,25 +129,26 @@ def chals():
             else:
                 abort(403)
     if utils.user_can_view_challenges() and (utils.ctf_started() or utils.is_admin()):
-        teamid = session.get('id')
         chals = Challenges.query.filter(or_(Challenges.hidden != True, Challenges.hidden == None)).order_by(Challenges.value).all()
         json = {'game': []}
         for x in chals:
             tags = [tag.tag for tag in Tags.query.add_columns('tag').filter_by(chal=x.id).all()]
             files = [str(f.location) for f in Files.query.filter_by(chal=x.id).all()]
-            unlocked_hints = set([u.itemid for u in Unlocks.query.filter_by(model='hints', teamid=teamid)])
+            unlocked_hints = set([u.itemid for u in Unlocks.query.filter_by(model='hints', teamid=session['id'])])
             hints = []
             for hint in Hints.query.filter_by(chal=x.id).all():
                 if hint.id in unlocked_hints or utils.ctf_ended():
                     hints.append({'id': hint.id, 'cost': hint.cost, 'hint': hint.hint})
                 else:
                     hints.append({'id': hint.id, 'cost': hint.cost})
+            # hints = [{'id':hint.id, 'cost':hint.cost} for hint in Hints.query.filter_by(chal=x.id).all()]
             chal_type = get_chal_class(x.type)
             json['game'].append({
                 'id': x.id,
                 'type': chal_type.name,
                 'name': x.name,
                 'value': x.value,
+                'competition':x.competition,
                 'description': x.description,
                 'category': x.category,
                 'files': files,
@@ -281,7 +304,6 @@ def chal(chalid):
     if not utils.user_can_view_challenges():
         return redirect(url_for('auth.login', next=request.path))
     if (utils.authed() and utils.is_verified() and (utils.ctf_started() or utils.view_after_ctf())) or utils.is_admin():
-        team = Teams.query.filter_by(id=session['id']).first()
         fails = WrongKeys.query.filter_by(teamid=session['id'], chalid=chalid).count()
         logger = logging.getLogger('keys')
         data = (time.strftime("%m/%d/%Y %X"), session['username'].encode('utf-8'), request.form['key'].encode('utf-8'), utils.get_kpm(session['id']))
@@ -315,15 +337,21 @@ def chal(chalid):
                 })
 
             chal_class = get_chal_class(chal.type)
-            status, message = chal_class.attempt(chal, request)
+            status, message = chal_class.solve(chal, provided_key)
             if status:  # The challenge plugin says the input is right
                 if utils.ctftime() or utils.is_admin():
-                    chal_class.solve(team=team, chal=chal, request=request)
+                    solve = Solves(teamid=session['id'], chalid=chalid, ip=utils.get_ip(), flag=provided_key)
+                    db.session.add(solve)
+                    db.session.commit()
+                    db.session.close()
                 logger.info("[{0}] {1} submitted {2} with kpm {3} [CORRECT]".format(*data))
                 return jsonify({'status': 1, 'message': message})
             else:  # The challenge plugin says the input is wrong
                 if utils.ctftime() or utils.is_admin():
-                    chal_class.fail(team=team, chal=chal, request=request)
+                    wrong = WrongKeys(teamid=session['id'], chalid=chalid, ip=utils.get_ip(), flag=provided_key)
+                    db.session.add(wrong)
+                    db.session.commit()
+                    db.session.close()
                 logger.info("[{0}] {1} submitted {2} with kpm {3} [WRONG]".format(*data))
                 # return '0' # key was wrong
                 if max_tries:
@@ -346,4 +374,4 @@ def chal(chalid):
         return jsonify({
             'status': -1,
             'message': "You must be logged in to solve a challenge"
-        })
+        }), 403
