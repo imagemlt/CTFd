@@ -1,10 +1,11 @@
+
 import datetime
 import hashlib
 import json
 import netaddr
-from socket import inet_pton, inet_ntop, AF_INET, AF_INET6
+import win_inet_pton
+from socket import  inet_ntop, AF_INET, AF_INET6
 from struct import unpack, pack, error as struct_error
-
 from flask_sqlalchemy import SQLAlchemy
 from passlib.hash import bcrypt_sha256
 from sqlalchemy.exc import DatabaseError
@@ -25,7 +26,9 @@ def long2ip(ip_int):
     return str(netaddr.IPAddress(ip_int))
 
 
+
 db = SQLAlchemy()
+
 
 
 class Pages(db.Model):
@@ -48,14 +51,16 @@ class Challenges(db.Model):
     max_attempts = db.Column(db.Integer, default=0)
     value = db.Column(db.Integer)
     category = db.Column(db.String(80))
+    competition=db.Column(db.Integer,db.ForeignKey('competitions.id'))
     type = db.Column(db.Integer)
     hidden = db.Column(db.Boolean)
 
-    def __init__(self, name, description, value, category, type=0):
+    def __init__(self, name, description, value, category, competition=1,type=0):
         self.name = name
         self.description = description
         self.value = value
         self.category = category
+        self.competition=competition
         self.type = type
         # self.flags = json.dumps(flags)
 
@@ -154,11 +159,13 @@ class Teams(db.Model):
     verified = db.Column(db.Boolean, default=False)
     admin = db.Column(db.Boolean, default=False)
     joined = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    number = db.Column(db.String(128))
 
-    def __init__(self, name, email, password):
+    def __init__(self, name, email, password ,number):
         self.name = name
         self.email = email
         self.password = bcrypt_sha256.encrypt(str(password))
+        self.number = number
 
     def __repr__(self):
         return '<team %r>' % self.name
@@ -314,3 +321,14 @@ class Config(db.Model):
     def __init__(self, key, value):
         self.key = key
         self.value = value
+        
+
+class Competitions(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    title=db.Column(db.String(46))
+    description=db.Column(db.Text)
+    
+    def __init__(self,title,description):
+        self.title=title
+        self.description=description
+
