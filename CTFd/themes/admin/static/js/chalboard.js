@@ -21,6 +21,8 @@ String.prototype.hashCode = function() {
     return hash;
 };
 
+competitions=[];
+
 function load_edit_key_modal(key_id, key_type_name) {
     $.get(script_root + '/themes/admin/static/js/templates/keys/'+key_type_name+'/edit-'+key_type_name+'-modal.hbs', function(template_data){
         $.get(script_root + '/admin/keys/' + key_id, function(key_data){
@@ -43,9 +45,10 @@ function load_chal_template(id, success_cb){
     obj = $.grep(challenges['game'], function (e) {
         return e.id == id;
     })[0]
+    
     $.get(script_root + '/themes/admin/static/js/templates/challenges/'+ obj['type_name'] +'/' + obj['type_name'] + '-challenge-update.hbs', function(template_data){
         var template = Handlebars.compile(template_data);
-        $("#update-modals-entry-div").html(template({'nonce':$('#nonce').val(), 'script_root':script_root}));
+        $("#update-modals-entry-div").html(template({'nonce':$('#nonce').val(), 'competitions':competitions,'script_root':script_root}));
         $.ajax({
           url: script_root + '/themes/admin/static/js/templates/challenges/'+obj['type_name']+'/'+obj['type_name']+'-challenge-update.js',
           dataType: "script",
@@ -94,5 +97,10 @@ function loadchals(){
 }
 
 $(function(){
+    console.log('loaded');
+    $.getJSON(script_root+'/competitions',function(mess){
+        console.log(mess);
+        competitions=mess.competitions;
+    })
     loadchals();
 })
