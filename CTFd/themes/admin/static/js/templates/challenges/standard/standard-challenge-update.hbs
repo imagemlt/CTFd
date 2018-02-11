@@ -21,10 +21,23 @@
                         </label>
                         <input type="text" class="form-control chal-category" name="category" placeholder="Enter challenge category">
                     </div>
-
+                    <div class="form-group">
+                        <label for="competition">Competition
+                            <i class="fa fa-question-circle gray-text" data-toggle="tooltip" data-placement="right" title="The category of your challenge"></i>
+                        </label>
+                        <select class="form-control chal-comp" name='competition'>
+                            {{#each competitions}}
+                            <option value="{{this.id}}">{{this.title}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
                     <ul class="nav nav-tabs" role="tablist" id="desc-edit">
-                        <li role="presentation" class="active"><a href="#desc-write" id="desc-write-link" aria-controls="home" role="tab" data-toggle="tab">Write</a></li>
-                        <li role="presentation"><a href="#desc-preview" aria-controls="home" role="tab" data-toggle="tab">Preview</a></li>
+                        <li role="presentation" class="active">
+                            <a href="#desc-write" id="desc-write-link" aria-controls="home" role="tab" data-toggle="tab">Write</a>
+                        </li>
+                        <li role="presentation">
+                            <a href="#desc-preview" aria-controls="home" role="tab" data-toggle="tab">Preview</a>
+                        </li>
                     </ul>
                     <div class="tab-content">
                         <div role="tabpanel" class="tab-pane active" id="desc-write">
@@ -48,8 +61,7 @@
 
                     <div class="checkbox">
                         <label>
-                            <input class="chal-attempts-checkbox" id="limit_max_attempts" name="limit_max_attempts" type="checkbox">
-                            Limit challenge attempts
+                            <input class="chal-attempts-checkbox" id="limit_max_attempts" name="limit_max_attempts" type="checkbox"> Limit challenge attempts
                         </label>
                     </div>
 
@@ -61,8 +73,7 @@
 
                     <div class="checkbox">
                         <label>
-                            <input class="chal-hidden" name="hidden" type="checkbox">
-                            Hidden
+                            <input class="chal-hidden" name="hidden" type="checkbox"> Hidden
                         </label>
                     </div>
 
@@ -155,9 +166,15 @@
                     <table id="hintsboard" class="table table-striped">
                         <thead>
                             <tr>
-                                <td class="text-center"><b>Hint</b></td>
-                                <td class="text-center"><b>Cost</b></td>
-                                <td class="text-center"><b>Settings</b></td>
+                                <td class="text-center">
+                                    <b>Hint</b>
+                                </td>
+                                <td class="text-center">
+                                    <b>Cost</b>
+                                </td>
+                                <td class="text-center">
+                                    <b>Settings</b>
+                                </td>
                             </tr>
                         </thead>
                         <tbody class="text-center">
@@ -230,7 +247,7 @@
                 </div>
                 <br>
                 <div style="text-align:center;display:none;" id="create-keys-button-div">
-                   <button id="create-keys-submit" class="btn btn-theme btn-outlined">Create Key</button>
+                    <button id="create-keys-submit" class="btn btn-theme btn-outlined">Create Key</button>
                 </div>
             </div>
         </div>
