@@ -117,6 +117,11 @@ Did you initiate a password reset?
         return render_template('reset_password.html', errors=['If that account exists you will receive an email, please check your inbox'])
     return render_template('reset_password.html')
 
+@auth.route('/current_id', methods=['POST', 'GET'])
+def current_id():
+	if(session['id'] is not None):
+		return str(session['id'])
+	return "error"
 
 @auth.route('/register', methods=['POST', 'GET'])
 def register():
@@ -128,6 +133,7 @@ def register():
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
+	number = request.form['number']
 
         name_len = len(name) == 0
         names = Teams.query.add_columns('name', 'id').filter_by(name=name).first()
@@ -135,6 +141,10 @@ def register():
         pass_short = len(password) == 0
         pass_long = len(password) > 128
         valid_email = re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", request.form['email'])
+	valid_card = re.match(r"^2[1-3]\d{7}$",request.form['card'])
+        valid_number = re.match(r"^\d{2}\w\d{5}$",request.form['number'])
+        match = request.form['card'][4:6] == request.form['number'][4:6]
+
 
         if not valid_email:
             errors.append("That email doesn't look right")
@@ -148,12 +158,16 @@ def register():
             errors.append('Pick a shorter password')
         if name_len:
             errors.append('Pick a longer team name')
+	if (not valid_card) or (not valid_number):
+            errors.append("The School Card or Student Number doesn't look right")
+            if match:
+                errors.append("The School Card or Student Number doesn't look right")
 
         if len(errors) > 0:
             return render_template('register.html', errors=errors, name=request.form['name'], email=request.form['email'], password=request.form['password'])
         else:
             with app.app_context():
-                team = Teams(name, email.lower(), password)
+                team = Teams(name, email.lower(), password,number)
                 db.session.add(team)
                 db.session.commit()
                 db.session.flush()
